@@ -54,6 +54,7 @@ notebooks/
 weights/               fold weights of both networks, keep-rule model, post-processing settings
 results/               training logs, out-of-fold PQ tables, fold assignment
 dev/                   builders for the notebooks and the Kaggle kernels used for training
+report/                LaTeX source and figures of the technical report (organizers' ACM template)
 ```
 
 ## Method
