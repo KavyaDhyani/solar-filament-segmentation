@@ -66,16 +66,24 @@ if args.kaggle:
         "    (pkg / name).write_text(text)\n"
         f"RUNS = {RUNS!r}\n"
         "W = REPO / 'weights'; W.mkdir(exist_ok=True)\n"
+        "def mount(kernel):  # kernel outputs are mounted under /kaggle/input, at a path containing the kernel slug\n"
+        "    hits = sorted(p for p in glob.glob('/kaggle/input/**/', recursive=True) if Path(p).name == kernel)\n"
+        "    assert hits, f'{kernel} output not mounted: ' + str(sorted(glob.glob('/kaggle/input/*/*')))\n"
+        "    return Path(hits[0])\n"
         "for name, kernel in RUNS.items():\n"
         "    (W / name).mkdir(exist_ok=True)\n"
-        "    for f in sorted(glob.glob(f'/kaggle/input/{kernel}/weights/fold*.pt')):\n"
-        "        (W / name / Path(f).name).symlink_to(f)\n"
-        "post = json.load(open('/kaggle/input/solar-filament-post/postprocess.json'))\n"
+        "    folds = sorted(mount(kernel).glob('weights/fold*.pt'))\n"
+        "    assert len(folds) == 5, (kernel, folds)\n"
+        "    for f in folds:\n"
+        "        (W / name / f.name).symlink_to(f)\n"
+        "POST = mount('solar-filament-post')\n"
+        "print('post-processing output:', POST, sorted(p.name for p in POST.iterdir()))\n"
+        "post = json.load(open(POST / 'postprocess.json'))\n"
         "names = {kernel: name for name, kernel in RUNS.items()}\n"
         "for r in post['runs']:\n"
         "    r['name'] = names[r['name']]\n"
         "json.dump(post, open(W / 'postprocess.json', 'w'), indent=1)\n"
-        "(W / 'keep_rule.txt').symlink_to('/kaggle/input/solar-filament-post/keep_rule.txt')\n"
+        "(W / 'keep_rule.txt').symlink_to(POST / 'keep_rule.txt')\n"
         "os.environ['PYTHONPATH'] = str(REPO / 'src') + ':' + os.environ.get('PYTHONPATH', '')\n"
         "os.chdir(REPO)\n"
         "print(sorted(str(p.relative_to(REPO)) for p in W.rglob('*')))"
@@ -156,7 +164,7 @@ print("submission.csv passes format checks")
 if args.kaggle:
     code(r"""
 # reproduction check against the submitted file (post-processing kernel output)
-ref = pd.read_csv("/kaggle/input/solar-filament-post/submission.csv")
+ref = pd.read_csv(POST / "submission.csv")
 print("rows: rebuilt", len(sub), "| submitted", len(ref), "| identical rows:", len(sub.merge(ref)))
 def union(df, stem):
     g = df[df.filament_id.str.rsplit("_", n=1).str[0] == stem]
