@@ -1,0 +1,52 @@
+{
+ "runs": [
+  {
+   "name": "unet_effv2s_1024",
+   "size": 1024,
+   "arch": "unet",
+   "encoder": "tu-tf_efficientnetv2_s",
+   "n_folds": 5,
+   "tta_views": 8
+  },
+  {
+   "name": "unet_effv2s_1536",
+   "size": 1536,
+   "arch": "unet",
+   "encoder": "tu-tf_efficientnetv2_s",
+   "n_folds": 5,
+   "tta_views": 8
+  }
+ ],
+ "params": {
+  "t_lo": 0.5,
+  "t_hi": 0.6,
+  "rho_max": 0.95,
+  "link_px": 8,
+  "min_area": 50,
+  "weights": [
+   1.0,
+   1.0
+  ]
+ },
+ "threshold": 0.22,
+ "feature_columns": [
+  "area",
+  "log_area",
+  "p_mean",
+  "p_max",
+  "p_std",
+  "rho_mean",
+  "rho_max",
+  "p_frac_hi",
+  "con_mean",
+  "con_min",
+  "elong",
+  "extent",
+  "bbox_long",
+  "parts",
+  "nn_dist",
+  "n_in_image",
+  "image_p_mean"
+ ],
+ "oof_pq": 0.43871181050226243
+}
