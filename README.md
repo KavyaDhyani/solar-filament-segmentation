@@ -31,7 +31,7 @@ and writes `submission.csv`. No training is needed. It takes about 30 minutes on
 runs on CPU (slowly).
 
 Reproduction check (Kaggle, 1 x T4): the rebuilt file has 1,125 filaments against 1,124 in the submitted
-file, 1,009 rows are byte-identical and the pixel IoU of all filament pixels is 0.995. The small differences
+file (`submission/submission.csv`), 1,009 rows are byte-identical and the pixel IoU of all filament pixels is 0.995. The small differences
 come from non-deterministic GPU convolution algorithms, which move a few probabilities across the uint8
 quantisation steps and thresholds near the borders of a few filaments.
 
@@ -54,7 +54,8 @@ notebooks/
 weights/               fold weights of both networks, keep-rule model, post-processing settings
 results/               training logs, out-of-fold PQ tables, fold assignment
 dev/                   builders for the notebooks and the Kaggle kernels used for training
-report/                LaTeX source and figures of the technical report (organizers' ACM template)
+submission/            the submitted predictions (submission.csv, public leaderboard PQ 0.39)
+report/                technical report (report.pdf) with its LaTeX source and figures (organizers' ACM template)
 ```
 
 ## Method

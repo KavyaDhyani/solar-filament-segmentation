@@ -20,3 +20,4 @@ report/build/
 # template zip as downloaded
 *.zip
 *:Zone.Identifier
+!submission/submission.csv
