@@ -31,10 +31,10 @@
 \guideStylefalse
 
 \begin{document}
+\setlength{\emergencystretch}{1.5em}
 
 \title{Consensus-Trained U-Net Ensembles with a Learned PQ Keep Rule}
 \subtitle{A Solution to the Solar Filament Segmentation Challenge 2026} % DO NOT CHANGE
-
 
 \author{Kavya Dhyani}
 \email{kavyadhyani10@gmail.com}
@@ -45,13 +45,11 @@
 
 \maketitle
 
-
 % ==================================== %
 %              INTRODUCTION            %
 % ==================================== %
 \section{Introduction}
     This report goes over the details of our submitted solution to the Solar Filament Segmentation Challenge~2026 \cite{filament-segmentation-2026}. The challenge, launched on July~10,~2026, is organized by the Earth-Space AI Research (ESAIR) Lab\footnote{\href{https://www.esairlab.com/home}{www.esairlab.com/}}. This challenge utilizes the MAGFiLO dataset for evaluation of the segmentation algorithms \cite{ahmadzadeh2024dataset}. Submissions are scored with Panoptic Quality (PQ) \cite{kirillov2019panoptic}: a predicted filament matches an expert filament when their IoU exceeds 0.5, every expert record of an image is scored separately, and counts are pooled, $\mathrm{PQ}=\sum \mathrm{IoU}/(\mathrm{TP}+\tfrac12\mathrm{FP}+\tfrac12\mathrm{FN})$. Our design follows from an analysis of the training set (Sec.~\ref{sec:analysis}); all code, weights and a notebook reproducing the submission are public.\footnote{\url{https://github.com/KavyaDhyani/solar-filament-segmentation}}
-
 
 % ==================================== %
 %              METHODOLOGY             %
@@ -59,7 +57,7 @@
 \section{Methodology}\label{sec:methodology}
 
 \subsection{What the training data implies}\label{sec:analysis}
-The training set has 707 images ($2048^2$~px, six GONG sites) with 1,154 expert records (1--3 experts per image) and 8,199 filaments; the 180 test images were used for inference only. Using a re-implementation of the official metric that matches the organizers' notebook exactly, we measured:
+The training set has 707 images ($2048^2$~px, six GONG sites) with 1,154 expert records (1--3 experts per image) and 8,199 filaments; the 180 test images were used for inference only. With our implementation of the official metric, which matches the organizers' notebook exactly, we measured:
 \begin{itemize}
     \item \textbf{Experts disagree.} One expert scored against another reaches PQ 0.340 (SQ 0.634, RQ 0.536). Scored against a held-out third expert, the union of the other experts' matched filaments (0.348) beats a single expert (0.318) and their intersection (0.292): a prediction should follow the consensus with generous outlines.
     \item \textbf{Outlines dominate.} Filaments are thin (median width 11~px). Eroding or dilating the ground truth by one pixel lowers its PQ against itself to 0.78 / 0.82, and by two pixels to 0.38 / 0.67. Down-sampling to 1024~px and back costs about 2\%, to 512~px about 8\%.
@@ -73,6 +71,7 @@ Figure~\ref{fig:pipeline} summarises the pipeline.
 
 \begin{figure*}[t]
 \centering
+\resizebox{\textwidth}{!}{%
 \begin{tikzpicture}[node distance=0.32cm, every node/.style={font=\scriptsize, align=center},
   box/.style={draw, rounded corners=2pt, minimum height=0.95cm, inner sep=3pt, text width=2.05cm, fill=gray!8},
   arr/.style={-{Stealth[length=4pt]}, thick}]
@@ -86,7 +85,7 @@ Figure~\ref{fig:pipeline} summarises the pipeline.
 \node[box, right=of keep, text width=1.45cm] (sub) {RLE per\\filament};
 \draw[arr] (img) -- (pre); \draw[arr] (pre) -- (n1); \draw[arr] (pre) -- (n2);
 \draw[arr] (n1) -- (avg); \draw[arr] (n2) -- (avg); \draw[arr] (avg) -- (cand); \draw[arr] (cand) -- (keep); \draw[arr] (keep) -- (sub);
-\end{tikzpicture}
+\end{tikzpicture}}
 \caption{End-to-end pipeline. $\hat q$: predicted PQ contribution of a candidate filament (Sec.~\ref{sec:keep}).}
 \label{fig:pipeline}
 \end{figure*}
@@ -95,11 +94,11 @@ Figure~\ref{fig:pipeline} summarises the pipeline.
 
 \textbf{Target.} The training target is the soft consensus, the share of an image's experts whose masks cover a pixel, area-downsampled with the image.
 
-\textbf{Networks.} We use U-Net \cite{ronneberger2015unet} with an ImageNet-pretrained EfficientNetV2-S encoder \cite{tan2021efficientnetv2} from \texttt{segmentation\_models\_pytorch} \cite{iakubovskii2019smp}, one output channel, and the loss BCE + soft Dice. Training uses AdamW (learning rate $3\cdot10^{-4}$, weight decay $10^{-4}$), one warm-up epoch followed by a cosine decay, gradient clipping, mixed precision, and an exponential moving average of the weights (decay 0.995). Augmentation runs on the GPU: random dihedral transforms, small affine warps ($\pm15^\circ$, $\pm8\%$ scale), gain and bias, blur, noise and large-scale haze. Each step uses random $768^2$ crops at batch size 8. Run~1 works at 1024~px for 40 epochs; run~2 works at 1536~px for 60 epochs with another seed. Both use the same folds.
+\textbf{Networks.} We use U-Net \cite{ronneberger2015unet} with an ImageNet-pretrained Efficient\-NetV2-S encoder \cite{tan2021efficientnetv2} from the Segmentation Models PyTorch library \cite{iakubovskii2019smp}, one output channel, and the loss BCE + soft Dice. Training uses AdamW (learning rate $3\cdot10^{-4}$, weight decay $10^{-4}$), one warm-up epoch followed by a cosine decay, gradient clipping, mixed precision, and an exponential moving average of the weights (decay 0.995). Augmentation runs on the GPU: random dihedral transforms, small affine warps ($\pm15^\circ$, $\pm8\%$ scale), gain and bias, blur, noise and large-scale haze. Each step uses random $768^2$ crops at batch size 8. Run~1 works at 1024~px for 40 epochs; run~2 works at 1536~px for 60 epochs with another seed. Both use the same folds.
 
 \textbf{Inference.} Each image is predicted under the 8 dihedral views, which are undone and averaged. Test maps average the 5 fold models of each run; out-of-fold maps come from the model that did not see the image. The two runs' maps are upsampled to 2048~px and averaged with equal weights.
 
-\textbf{Candidates.} A candidate is a connected component (8-connectivity) of $p>0.5$ inside the disk that reaches $p>0.6$ somewhere, covers at least 50~px and has a mean $r/R<0.95$. Components within 8~px of each other are linked into one instance; for run~1 this raises out-of-fold PQ from 0.425 (no linking) to 0.432, while 16~px is worse (0.426).
+\textbf{Candidates.} A candidate is an 8-connected component of $p>0.5$ inside the disk that reaches $p>0.6$ somewhere, covers at least 50~px and has a mean $r/R<0.95$. Components within 8~px of each other are linked into one instance; for run~1 this raises out-of-fold PQ from 0.425 (no linking) to 0.432, while 16~px is worse (0.426).
 
 \subsection{Learned keep rule}\label{sec:keep}
 Every submitted instance adds $\tfrac12$ to the PQ denominator; when it matches an expert filament it also adds its IoU to the numerator and turns a miss into a match, which leaves the denominator unchanged. Adding a candidate therefore raises PQ only if its expected IoU-weighted hit rate, averaged over the image's expert records, $q=\frac1{K}\sum_k \mathrm{IoU}_k\,[\mathrm{IoU}_k>0.5]$, exceeds PQ/2. We compute $q$ for every out-of-fold candidate and train a LightGBM regressor \cite{ke2017lightgbm} to predict it from 17 features:
@@ -118,11 +117,14 @@ Images are linked into clusters when they lie within three days of each other (3
 
 \begin{figure*}[t]
 \centering
-\includegraphics[width=\textwidth]{figs/examples.png}
-\caption{Out-of-fold segmentations of the training images whose PQ is closest to the median (one per site, at least two experts; not hand-picked). Column 1: the image with each expert's outlines in its own colour. Column 2: ensemble probability. Column 3: candidates kept (green) and dropped (red) by the keep rule. Column 4: zoom on the largest kept filament.}
+\includegraphics[width=0.9\textwidth]{figs/examples.png}
+\caption{Out-of-fold segmentations of the training images whose PQ is closest to the median (one per site, at least two experts; not hand-picked). Column 1: the image with each expert's outlines in its own colour. Column 2: ensemble probability. Column 3: candidates kept (green) and dropped (red) by the keep rule. Column 4: zoom on the largest kept filament, experts' outlines and ours (green).}
 \label{fig:examples}
+\vspace{0.6em}
+\includegraphics[width=0.8\textwidth]{figs/analysis.pdf}
+\caption{Left: out-of-fold PQ against the keep threshold; the optimum coincides with PQ/2. Right: recall and IoU of matched filaments by expert filament area (quintiles).}
+\label{fig:analysis}
 \end{figure*}
-
 
 % ==================================== %
 %              EVALUATION              %
@@ -158,13 +160,6 @@ Ensemble, keep all & 0.398 {\scriptsize [0.389, 0.408]} & 0.674 / 0.591 & -- \\
     \item \textbf{Number of experts.} Images with one, two and three experts score 0.438, 0.454 and 0.429.
     \item \textbf{Leaderboard.} Out-of-fold gains carried over to the public leaderboard (0.37 $\rightarrow$ 0.39), but at a level about 0.05 lower, which suggests that the test images are harder or differently annotated.
 \end{itemize}
-
-\begin{figure}[t]
-\centering
-\includegraphics[width=\columnwidth]{figs/analysis.pdf}
-\caption{Left: out-of-fold PQ against the keep threshold; the optimum coincides with PQ/2. Right: recall and IoU of matched filaments by expert filament area (quintiles).}
-\label{fig:analysis}
-\end{figure}
 
 \textbf{Strengths.}
 \begin{itemize}

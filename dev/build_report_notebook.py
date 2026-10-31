@@ -205,14 +205,14 @@ for row, i in enumerate(chosen):
     for k, m in enumerate(experts):
         ax.contour(np.arange(sl[1].start, sl[1].stop), np.arange(sl[0].start, sl[0].stop), m[sl], [0.5], colors=[f"C{k + 1}"], linewidths=0.3)
     ax.set_ylabel(f"{stem[:8]} {stem[-2:]}\nimage PQ {img_pq[i]:.2f}")
-    if row == 0: ax.set_title("image + experts")
+    if row == 0: ax.set_title("image + expert outlines")
     ax = axes[row, 1]; ax.imshow(prob[sl], cmap="magma", vmin=0, vmax=1, extent=ext); ax.set_xticks([]); ax.set_yticks([])
     if row == 0: ax.set_title("ensemble probability")
     ax = axes[row, 2]; show(ax, img[sl], ext)
     xs, ys = np.arange(sl[1].start, sl[1].stop), np.arange(sl[0].start, sl[0].stop)
     ax.contour(xs, ys, kept[sl].astype(float), [0.5], colors=["lime"], linewidths=0.3)
     ax.contour(xs, ys, dropped[sl], [0.5], colors=["red"], linewidths=0.3)
-    if row == 0: ax.set_title("kept (green) / dropped (red)")
+    if row == 0: ax.set_title("kept / dropped")
     # zoom on the largest kept instance
     areas_k = np.bincount(lab[kept], minlength=n + 1)
     j = int(np.argmax(areas_k))
@@ -224,7 +224,7 @@ for row, i in enumerate(chosen):
     for k, m in enumerate(experts):
         ax.contour(zx, zy, m[zs], [0.5], colors=[f"C{k + 1}"], linewidths=0.6)
     ax.contour(zx, zy, kept[zs].astype(float), [0.5], colors=["lime"], linewidths=0.8)
-    if row == 0: ax.set_title("zoom: experts vs ours (green)")
+    if row == 0: ax.set_title("zoom")
 fig.tight_layout(); fig.savefig(FIG / "examples.png", dpi=250)
 print(sorted(p.name for p in FIG.iterdir()))
 """)

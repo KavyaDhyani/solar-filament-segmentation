@@ -14,3 +14,9 @@ __pycache__/
 .ipynb_checkpoints/
 *.npy
 submission.csv
+
+# LaTeX build output
+report/build/
+# template zip as downloaded
+*.zip
+*:Zone.Identifier
